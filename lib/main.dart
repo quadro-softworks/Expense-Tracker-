@@ -3,6 +3,7 @@ import 'models/expense.dart';
 import 'models/category.dart';
 import 'screens/add_expense_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart'; // Import fl_chart
 
 void main() {
   runApp(const ExpenseTrackerApp());
@@ -282,13 +283,41 @@ class StatisticsScreen extends StatelessWidget {
     try {
       return categories.firstWhere((cat) => cat.id == categoryId);
     } catch (e) {
-      return null; // Should not happen if data is consistent
+      return null; 
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final categoryTotals = _calculateCategoryTotals();
+    final totalExpenses = expenses.fold<double>(0, (sum, item) => sum + item.amount);
+
+    List<PieChartSectionData> showingSections() {
+      return categoryTotals.entries.map((entry) {
+        final category = _getCategoryById(entry.key);
+        final percentage = (entry.value / totalExpenses) * 100;
+        return PieChartSectionData(
+          color: category != null ? Color(category.color) : Colors.grey,
+          value: entry.value,
+          title: '${percentage.toStringAsFixed(1)}%\n${category?.icon ?? ""}',
+          radius: 100,
+          titleStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+            shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
+          ),
+          badgeWidget: Text(
+            category?.name ?? 'Unknown',
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+            ),
+          ),
+          badgePositionPercentageOffset: .98,
+        );
+      }).toList();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -314,62 +343,77 @@ class StatisticsScreen extends StatelessWidget {
                 ],
               ),
             )
-          : categoryTotals.isEmpty // Also check if categoryTotals is empty, though expenses.isEmpty should cover this
-              ? const Center( // This case might be redundant if expenses.isEmpty is handled first
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No category spending to display',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: categoryTotals.length,
-                  itemBuilder: (context, index) {
-                    final categoryId = categoryTotals.keys.elementAt(index);
-                    final totalAmount = categoryTotals[categoryId]!;
-                    final category = _getCategoryById(categoryId);
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Text(
-                              category?.icon ?? '❓',
-                              style: const TextStyle(fontSize: 24),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                category?.name ?? 'Unknown Category',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '\\$${totalAmount.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
-                              ),
-                            ),
-                          ],
+          : SingleChildScrollView( // Added SingleChildScrollView
+              padding: const EdgeInsets.all(16.0),
+              child: Column( // Wrapped content in a Column
+                children: [
+                  SizedBox(
+                    height: 250, // Define height for PieChart
+                    child: PieChart(
+                      PieChartData(
+                        sections: showingSections(),
+                        centerSpaceRadius: 40,
+                        sectionsSpace: 2,
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            // Handle touch events if needed
+                          },
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Total Spent: \$${totalExpenses.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Spending by Category:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ListView.builder(
+                    shrinkWrap: true, // Important for ListView inside Column
+                    physics: const NeverScrollableScrollPhysics(), // Disable scrolling for this ListView
+                    itemCount: categoryTotals.length,
+                    itemBuilder: (context, index) {
+                      final categoryId = categoryTotals.keys.elementAt(index);
+                      final totalAmount = categoryTotals[categoryId]!;
+                      final category = _getCategoryById(categoryId);
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: ListTile(
+                          leading: Text(
+                            category?.icon ?? '❓',
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                          title: Text(
+                            category?.name ?? 'Unknown Category',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          trailing: Text(
+                            '\\$${totalAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
