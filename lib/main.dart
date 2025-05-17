@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     ),
-    const StatisticsScreen(),
+    StatisticsScreen(expenses: _expenses, categories: _categories), // Pass expenses and categories
     const SettingsScreen(),
   ];
 
@@ -257,28 +257,119 @@ class ExpenseListScreen extends StatelessWidget {
 }
 
 class StatisticsScreen extends StatelessWidget {
-  const StatisticsScreen({super.key});
+  final List<Expense> expenses;
+  final List<Category> categories;
+
+  const StatisticsScreen({
+    super.key,
+    required this.expenses,
+    required this.categories,
+  });
+
+  Map<String, double> _calculateCategoryTotals() {
+    final categoryTotals = <String, double>{};
+    for (final expense in expenses) {
+      categoryTotals.update(
+        expense.categoryId,
+        (value) => value + expense.amount,
+        ifAbsent: () => expense.amount,
+      );
+    }
+    return categoryTotals;
+  }
+
+  Category? _getCategoryById(String categoryId) {
+    try {
+      return categories.firstWhere((cat) => cat.id == categoryId);
+    } catch (e) {
+      return null; // Should not happen if data is consistent
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final categoryTotals = _calculateCategoryTotals();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistics'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Statistics will appear here',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+      body: expenses.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No expenses to show statistics for',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Add some expenses to see your spending summary',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : categoryTotals.isEmpty // Also check if categoryTotals is empty, though expenses.isEmpty should cover this
+              ? const Center( // This case might be redundant if expenses.isEmpty is handled first
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.bar_chart, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No category spending to display',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: categoryTotals.length,
+                  itemBuilder: (context, index) {
+                    final categoryId = categoryTotals.keys.elementAt(index);
+                    final totalAmount = categoryTotals[categoryId]!;
+                    final category = _getCategoryById(categoryId);
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Text(
+                              category?.icon ?? '❓',
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                category?.name ?? 'Unknown Category',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '\\$${totalAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
