@@ -11,6 +11,20 @@ class Category {
     required this.color,
   });
 
+  Category copyWith({
+    String? id,
+    String? name,
+    String? icon,
+    int? color,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+    );
+  }
+
   // Convert Category to Map for database storage
   Map<String, dynamic> toMap() {
     return {
