@@ -17,6 +17,26 @@ class Expense {
     this.imageUrl,
   });
 
+  Expense copyWith({
+    String? id,
+    String? title,
+    double? amount,
+    DateTime? date,
+    String? categoryId,
+    String? description,
+    String? imageUrl,
+  }) {
+    return Expense(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      categoryId: categoryId ?? this.categoryId,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
+
   // Convert Expense to Map for database storage
   Map<String, dynamic> toMap() {
     return {
@@ -40,27 +60,6 @@ class Expense {
       categoryId: map['categoryId'],
       description: map['description'],
       imageUrl: map['imageUrl'],
-    );
-  }
-
-  // Create a copy of expense with updated fields
-  Expense copyWith({
-    String? id,
-    String? title,
-    double? amount,
-    DateTime? date,
-    String? categoryId,
-    String? description,
-    String? imageUrl,
-  }) {
-    return Expense(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      amount: amount ?? this.amount,
-      date: date ?? this.date,
-      categoryId: categoryId ?? this.categoryId,
-      description: description ?? this.description,
-      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 
