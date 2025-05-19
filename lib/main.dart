@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'models/expense.dart';
+import 'models/category.dart';
+import 'screens/add_expense_screen.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const ExpenseTrackerApp());
@@ -39,9 +43,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  List<Expense> _expenses = [];
+  final List<Category> _categories = Category.getDefaultCategories();
 
-  final List<Widget> _screens = [
-    const ExpenseListScreen(),
+  void _addExpense(Expense expense) {
+    setState(() {
+      _expenses.add(expense);
+    });
+  }
+
+  List<Widget> get _screens => [
+    ExpenseListScreen(expenses: _expenses, categories: _categories),
     const StatisticsScreen(),
     const SettingsScreen(),
   ];
@@ -71,8 +83,12 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Add expense feature coming soon!')),
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => AddExpenseScreen(
+                      onExpenseAdded: _addExpense,
+                    ),
+                  ),
                 );
               },
               child: const Icon(Icons.add),
@@ -83,7 +99,22 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class ExpenseListScreen extends StatelessWidget {
-  const ExpenseListScreen({super.key});
+  final List<Expense> expenses;
+  final List<Category> categories;
+
+  const ExpenseListScreen({
+    super.key,
+    required this.expenses,
+    required this.categories,
+  });
+
+  Category? _getCategoryById(String categoryId) {
+    try {
+      return categories.firstWhere((cat) => cat.id == categoryId);
+    } catch (e) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,24 +123,78 @@ class ExpenseListScreen extends StatelessWidget {
         title: const Text('Expenses'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'No expenses yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: expenses.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No expenses yet',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Tap the + button to add your first expense',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: expenses.length,
+              itemBuilder: (context, index) {
+                final expense = expenses[index];
+                final category = _getCategoryById(expense.categoryId);
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: category != null
+                          ? Color(category.color).withValues(alpha: 0.2)
+                          : Colors.grey.withValues(alpha: 0.2),
+                      child: Text(
+                        category?.icon ?? '📦',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                    title: Text(
+                      expense.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(category?.name ?? 'Unknown'),
+                        Text(
+                          DateFormat('MMM dd, yyyy').format(expense.date),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        if (expense.description != null)
+                          Text(
+                            expense.description!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                      ],
+                    ),
+                    trailing: Text(
+                      '\$${expense.amount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-            SizedBox(height: 8),
-            Text(
-              'Tap the + button to add your first expense',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
