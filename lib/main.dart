@@ -1,12 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Added provider
+import 'package:shared_preferences/shared_preferences.dart'; // Added shared_preferences
 import 'models/expense.dart';
 import 'models/category.dart';
 import 'screens/add_expense_screen.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart'; // Import fl_chart
+import 'package:fl_chart/fl_chart.dart';
+
+// ThemeNotifier to manage theme state
+class ThemeNotifier with ChangeNotifier {
+  final String key = "theme";
+  SharedPreferences? _prefs;
+  bool _darkTheme = false;
+
+  bool get darkTheme => _darkTheme;
+
+  ThemeNotifier() {
+    _loadFromPrefs();
+  }
+
+  _initPrefs() async {
+    _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  _loadFromPrefs() async {
+    await _initPrefs();
+    _darkTheme = _prefs?.getBool(key) ?? false;
+    notifyListeners();
+  }
+
+  _saveToPrefs() async {
+    await _initPrefs();
+    _prefs?.setBool(key, _darkTheme);
+  }
+
+  void toggleTheme() {
+    _darkTheme = !_darkTheme;
+    _saveToPrefs();
+    notifyListeners();
+  }
+}
 
 void main() {
-  runApp(const ExpenseTrackerApp());
+  runApp(
+    ChangeNotifierProvider<ThemeNotifier>(
+      create: (_) => ThemeNotifier(),
+      child: const ExpenseTrackerApp(),
+    ),
+  );
 }
 
 class ExpenseTrackerApp extends StatelessWidget {
@@ -14,23 +55,28 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Expense Tracker',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
+    return Consumer<ThemeNotifier>( // Use Consumer to rebuild on theme change
+      builder: (context, themeNotifier, child) {
+        return MaterialApp(
+          title: 'Expense Tracker',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.green,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.green,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          themeMode: themeNotifier.darkTheme ? ThemeMode.dark : ThemeMode.light, // Control ThemeMode
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
@@ -428,18 +474,23 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.settings, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Settings will appear here',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
+      body: ListView( // Changed to ListView for more settings options later
+        children: [
+          Consumer<ThemeNotifier>(
+            builder: (context, themeNotifier, child) {
+              return ListTile(
+                title: const Text('Dark Mode'),
+                trailing: Switch(
+                  value: themeNotifier.darkTheme,
+                  onChanged: (value) {
+                    themeNotifier.toggleTheme();
+                  },
+                ),
+              );
+            },
+          ),
+          // Add more settings here in the future
+        ],
       ),
     );
   }
