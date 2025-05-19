@@ -38,8 +38,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _selectedDate = widget.initialExpense!.date;
       _selectedCategory = _categories.firstWhere(
         (cat) => cat.id == widget.initialExpense!.categoryId,
-        orElse: () => _categories.first,
+        orElse: () => _categories.first, // Default if category not found
       );
+    } else {
+      // Ensure a default category is selected if not editing and categories are available
+      if (_categories.isNotEmpty) {
+        _selectedCategory = _categories.first;
+      }
     }
   }
 
