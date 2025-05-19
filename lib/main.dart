@@ -270,11 +270,12 @@ class StatisticsScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bar_chart, size: 64, color: Colors.grey),
+            Icon(Icons.pie_chart_outline, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              'Statistics will appear here',
+              'Detailed expense statistics are coming soon!',
               style: TextStyle(fontSize: 18, color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -297,11 +298,12 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.settings, size: 64, color: Colors.grey),
+            Icon(Icons.manage_accounts, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              'Settings will appear here',
+              'App settings and preferences will be available here.',
               style: TextStyle(fontSize: 18, color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
