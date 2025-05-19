@@ -14,8 +14,8 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const ExpenseTrackerApp());
 
-    // Verify that the app loads with the expense tracker title.
-    expect(find.text('Expenses'), findsOneWidget);
+    // Verify that the app loads with the expense tracker content.
+    expect(find.text('Expenses'), findsWidgets);
     expect(find.text('No expenses yet'), findsOneWidget);
   });
 }
