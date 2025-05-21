@@ -6,8 +6,13 @@ import '../models/category.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final Function(Expense) onExpenseAdded;
+  final Expense? initialExpense;
 
-  const AddExpenseScreen({super.key, required this.onExpenseAdded});
+  const AddExpenseScreen({
+    super.key,
+    required this.onExpenseAdded,
+    this.initialExpense,
+  });
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -22,6 +27,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
   final List<Category> _categories = Category.getDefaultCategories();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialExpense != null) {
+      _titleController.text = widget.initialExpense!.title;
+      _amountController.text = widget.initialExpense!.amount.toString();
+      _descriptionController.text = widget.initialExpense!.description ?? '';
+      _selectedDate = widget.initialExpense!.date;
+      _selectedCategory = _categories.firstWhere(
+        (cat) => cat.id == widget.initialExpense!.categoryId,
+        orElse: () => _categories.first,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -48,7 +68,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   void _saveExpense() {
     if (_formKey.currentState!.validate() && _selectedCategory != null) {
       final expense = Expense(
-        id: const Uuid().v4(),
+        id: widget.initialExpense?.id ?? const Uuid().v4(),
         title: _titleController.text.trim(),
         amount: double.parse(_amountController.text),
         date: _selectedDate,
@@ -57,7 +77,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ? null
             : _descriptionController.text.trim(),
       );
-
       widget.onExpenseAdded(expense);
       Navigator.of(context).pop();
     } else if (_selectedCategory == null) {
@@ -71,7 +90,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Expense'),
+        title: Text(
+          widget.initialExpense == null ? 'Add Expense' : 'Edit Expense',
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           TextButton(onPressed: _saveExpense, child: const Text('Save')),
