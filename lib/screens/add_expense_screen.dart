@@ -7,10 +7,7 @@ import '../models/category.dart';
 class AddExpenseScreen extends StatefulWidget {
   final Function(Expense) onExpenseAdded;
 
-  const AddExpenseScreen({
-    super.key,
-    required this.onExpenseAdded,
-  });
+  const AddExpenseScreen({super.key, required this.onExpenseAdded});
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -21,7 +18,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
   final List<Category> _categories = Category.getDefaultCategories();
@@ -56,17 +53,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         amount: double.parse(_amountController.text),
         date: _selectedDate,
         categoryId: _selectedCategory!.id,
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
       );
 
       widget.onExpenseAdded(expense);
       Navigator.of(context).pop();
     } else if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a category')));
     }
   }
 
@@ -77,10 +74,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         title: const Text('Add Expense'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          TextButton(
-            onPressed: _saveExpense,
-            child: const Text('Save'),
-          ),
+          TextButton(onPressed: _saveExpense, child: const Text('Save')),
         ],
       ),
       body: Form(
@@ -181,7 +175,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ? Color(category.color).withValues(alpha: 0.2)
                             : Colors.grey.withValues(alpha: 0.1),
                         border: Border.all(
-                          color: isSelected 
+                          color: isSelected
                               ? Color(category.color)
                               : Colors.grey,
                           width: isSelected ? 2 : 1,
@@ -199,11 +193,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           Text(
                             category.name,
                             style: TextStyle(
-                              color: isSelected 
+                              color: isSelected
                                   ? Color(category.color)
                                   : Colors.black87,
-                              fontWeight: isSelected 
-                                  ? FontWeight.bold 
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
                                   : FontWeight.normal,
                             ),
                           ),
