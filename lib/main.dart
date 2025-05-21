@@ -52,6 +52,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _editExpense(Expense updatedExpense) {
+    setState(() {
+      final index = _expenses.indexWhere((e) => e.id == updatedExpense.id);
+      if (index != -1) {
+        _expenses[index] = updatedExpense;
+      }
+    });
+  }
+
   void _deleteExpense(String id) {
     setState(() {
       _expenses.removeWhere((expense) => expense.id == id);
@@ -62,7 +71,19 @@ class _HomeScreenState extends State<HomeScreen> {
     ExpenseListScreen(
       expenses: _expenses,
       categories: _categories,
-      onDeleteExpense: _deleteExpense, // Pass the delete function
+      onDeleteExpense: _deleteExpense,
+      onEditExpense: (expense) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => AddExpenseScreen(
+              onExpenseAdded: (updatedExpense) {
+                _editExpense(updatedExpense);
+              },
+              initialExpense: expense,
+            ),
+          ),
+        );
+      },
     ),
     const StatisticsScreen(),
     const SettingsScreen(),
@@ -107,13 +128,15 @@ class _HomeScreenState extends State<HomeScreen> {
 class ExpenseListScreen extends StatelessWidget {
   final List<Expense> expenses;
   final List<Category> categories;
-  final Function(String) onDeleteExpense; // Callback for deleting an expense
+  final Function(String) onDeleteExpense;
+  final Function(Expense) onEditExpense;
 
   const ExpenseListScreen({
     super.key,
     required this.expenses,
     required this.categories,
-    required this.onDeleteExpense, // Add onDeleteExpense to constructor
+    required this.onDeleteExpense,
+    required this.onEditExpense,
   });
 
   Category? _getCategoryById(String categoryId) {
@@ -158,8 +181,7 @@ class ExpenseListScreen extends StatelessWidget {
                 final category = _getCategoryById(expense.categoryId);
 
                 return Dismissible(
-                  // Wrap Card with Dismissible
-                  key: Key(expense.id), // Unique key for Dismissible
+                  key: Key(expense.id),
                   direction: DismissDirection.endToStart,
                   onDismissed: (direction) {
                     onDeleteExpense(expense.id);
@@ -178,8 +200,8 @@ class ExpenseListScreen extends StatelessWidget {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: category != null
-                            ? Color(category.color).withValues(alpha: 0.2)
-                            : Colors.grey.withValues(alpha: 0.2),
+                            ? Color(category.color).withAlpha(50)
+                            : Colors.grey.withAlpha(50),
                         child: Text(
                           category?.icon ?? '📦',
                           style: const TextStyle(fontSize: 20),
@@ -207,13 +229,23 @@ class ExpenseListScreen extends StatelessWidget {
                             ),
                         ],
                       ),
-                      trailing: Text(
-                        '\$${expense.amount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '\$${expense.amount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () => onEditExpense(expense),
+                            tooltip: 'Edit',
+                          ),
+                        ],
                       ),
                     ),
                   ),
