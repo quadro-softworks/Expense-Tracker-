@@ -52,8 +52,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _deleteExpense(String id) {
+    setState(() {
+      _expenses.removeWhere((expense) => expense.id == id);
+    });
+  }
+
   List<Widget> get _screens => [
-    ExpenseListScreen(expenses: _expenses, categories: _categories),
+    ExpenseListScreen(
+      expenses: _expenses,
+      categories: _categories,
+      onDeleteExpense: _deleteExpense, // Pass the delete function
+    ),
     const StatisticsScreen(),
     const SettingsScreen(),
   ];
@@ -66,10 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Expenses',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Expenses'),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: 'Statistics',
@@ -85,9 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => AddExpenseScreen(
-                      onExpenseAdded: _addExpense,
-                    ),
+                    builder: (context) =>
+                        AddExpenseScreen(onExpenseAdded: _addExpense),
                   ),
                 );
               },
@@ -101,11 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
 class ExpenseListScreen extends StatelessWidget {
   final List<Expense> expenses;
   final List<Category> categories;
+  final Function(String) onDeleteExpense; // Callback for deleting an expense
 
   const ExpenseListScreen({
     super.key,
     required this.expenses,
     required this.categories,
+    required this.onDeleteExpense, // Add onDeleteExpense to constructor
   });
 
   Category? _getCategoryById(String categoryId) {
@@ -149,46 +157,63 @@ class ExpenseListScreen extends StatelessWidget {
                 final expense = expenses[index];
                 final category = _getCategoryById(expense.categoryId);
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: category != null
-                          ? Color(category.color).withValues(alpha: 0.2)
-                          : Colors.grey.withValues(alpha: 0.2),
-                      child: Text(
-                        category?.icon ?? '📦',
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
-                    title: Text(
-                      expense.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(category?.name ?? 'Unknown'),
-                        Text(
-                          DateFormat('MMM dd, yyyy').format(expense.date),
-                          style: const TextStyle(fontSize: 12),
+                return Dismissible(
+                  // Wrap Card with Dismissible
+                  key: Key(expense.id), // Unique key for Dismissible
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    onDeleteExpense(expense.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${expense.title} deleted')),
+                    );
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    alignment: Alignment.centerRight,
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: category != null
+                            ? Color(category.color).withValues(alpha: 0.2)
+                            : Colors.grey.withValues(alpha: 0.2),
+                        child: Text(
+                          category?.icon ?? '📦',
+                          style: const TextStyle(fontSize: 20),
                         ),
-                        if (expense.description != null)
+                      ),
+                      title: Text(
+                        expense.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(category?.name ?? 'Unknown'),
                           Text(
-                            expense.description!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontStyle: FontStyle.italic,
-                            ),
+                            DateFormat('MMM dd, yyyy').format(expense.date),
+                            style: const TextStyle(fontSize: 12),
                           ),
-                      ],
-                    ),
-                    trailing: Text(
-                      '\$${expense.amount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
+                          if (expense.description != null)
+                            Text(
+                              expense.description!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                        ],
+                      ),
+                      trailing: Text(
+                        '\$${expense.amount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
                       ),
                     ),
                   ),
