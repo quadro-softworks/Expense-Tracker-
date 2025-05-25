@@ -1,3 +1,5 @@
+enum RecurrenceType { none, daily, weekly, monthly, yearly }
+
 class Expense {
   final String id;
   final String title;
@@ -6,6 +8,8 @@ class Expense {
   final String categoryId;
   final String? description;
   final String? imageUrl;
+  final RecurrenceType recurrenceType;
+  final DateTime? nextDueDate;
 
   Expense({
     required this.id,
@@ -15,6 +19,8 @@ class Expense {
     required this.categoryId,
     this.description,
     this.imageUrl,
+    this.recurrenceType = RecurrenceType.none,
+    this.nextDueDate,
   });
 
   // Convert Expense to Map for database storage
@@ -27,6 +33,8 @@ class Expense {
       'categoryId': categoryId,
       'description': description,
       'imageUrl': imageUrl,
+      'recurrenceType': recurrenceType.index,
+      'nextDueDate': nextDueDate?.millisecondsSinceEpoch,
     };
   }
 
@@ -40,6 +48,10 @@ class Expense {
       categoryId: map['categoryId'],
       description: map['description'],
       imageUrl: map['imageUrl'],
+      recurrenceType: RecurrenceType.values[map['recurrenceType'] ?? 0],
+      nextDueDate: map['nextDueDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['nextDueDate'])
+          : null,
     );
   }
 
@@ -52,6 +64,8 @@ class Expense {
     String? categoryId,
     String? description,
     String? imageUrl,
+    RecurrenceType? recurrenceType,
+    DateTime? nextDueDate,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -61,20 +75,20 @@ class Expense {
       categoryId: categoryId ?? this.categoryId,
       description: description ?? this.description,
       imageUrl: imageUrl ?? this.imageUrl,
+      recurrenceType: recurrenceType ?? this.recurrenceType,
+      nextDueDate: nextDueDate ?? this.nextDueDate,
     );
   }
 
   @override
   String toString() {
-    return 'Expense{id: $id, title: $title, amount: $amount, date: $date, categoryId: $categoryId}';
+    return 'Expense{id: $id, title: $title, amount: $amount, date: $date, categoryId: $categoryId, recurrenceType: $recurrenceType, nextDueDate: $nextDueDate}';
   }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Expense &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is Expense && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
