@@ -11,17 +11,10 @@ class Category {
     required this.color,
   });
 
-  // Convert Category to Map for database storage
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'icon': icon,
-      'color': color,
-    };
+    return {'id': id, 'name': name, 'icon': icon, 'color': color};
   }
 
-  // Create Category from Map (database retrieval)
   factory Category.fromMap(Map<String, dynamic> map) {
     return Category(
       id: map['id'],
@@ -39,14 +32,11 @@ class Category {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Category &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is Category && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
 
-  // Default categories
   static List<Category> getDefaultCategories() {
     return [
       Category(id: '1', name: 'Food', icon: '🍔', color: 0xFFFF5722),
