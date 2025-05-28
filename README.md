@@ -4,12 +4,17 @@ A comprehensive expense tracking application built with Flutter.
 
 ## Features
 
-- 📱 Cross-platform (iOS, Android, Web, Desktop)
-- 💰 Track daily expenses
-- 📊 Visual statistics and charts
-- 🏷️ Categorize expenses
-- 🌙 Dark/Light theme support
-- 💾 Local data storage
+- Track daily expenses with full CRUD operations
+- Interactive statistics and charts with fl_chart
+- Categorize expenses with custom categories
+- Search and filter expenses by category and date range
+- Dark/Light theme support with system theme detection
+- Local SQLite database storage
+- Multi-currency support (USD, EUR, GBP, JPY, INR)
+- Edit expenses with pre-populated data
+- Swipe to delete with confirmation
+- Real-time expense analytics and summaries
+- Comprehensive settings management
 
 ## Project Structure
 
@@ -36,11 +41,13 @@ lib/
 ## Getting Started
 
 1. **Prerequisites**
+
    - Flutter SDK (latest stable version)
    - Dart SDK
    - Android Studio / VS Code
 
 2. **Installation**
+
    ```bash
    # Clone the repository
    git clone <repository-url>
@@ -53,7 +60,26 @@ lib/
    flutter run
    ```
 
-3. **Build for production**
+3. **Windows Developer Mode (Required for Desktop)**
+   If you're running on Windows and want to test the desktop version, you need to enable Developer Mode:
+
+   **Option 1: Use the provided script**
+
+   ```bash
+   # Run the batch file to open settings
+   ./enable_developer_mode.bat
+   ```
+
+   **Option 2: Manual setup**
+
+   - Open Windows Settings (Win + I)
+   - Go to Privacy & security → For developers
+   - Turn ON "Developer Mode"
+   - Click "Yes" when prompted
+   - Restart your terminal and run `flutter run -d windows`
+
+4. **Build for production**
+
    ```bash
    # Android
    flutter build apk --release
@@ -63,6 +89,9 @@ lib/
 
    # Web
    flutter build web --release
+
+   # Windows (requires Developer Mode)
+   flutter build windows --release
    ```
 
 ## Development

@@ -10,6 +10,7 @@ class Expense {
   final String? imageUrl;
   final RecurrenceType recurrenceType;
   final DateTime? nextDueDate;
+  final String? currency; // Add currency field
 
   Expense({
     required this.id,
@@ -21,9 +22,9 @@ class Expense {
     this.imageUrl,
     this.recurrenceType = RecurrenceType.none,
     this.nextDueDate,
+    this.currency = 'ETB', // Default to ETB
   });
 
-  // Convert Expense to Map for database storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -35,10 +36,10 @@ class Expense {
       'imageUrl': imageUrl,
       'recurrenceType': recurrenceType.index,
       'nextDueDate': nextDueDate?.millisecondsSinceEpoch,
+      'currency': currency,
     };
   }
 
-  // Create Expense from Map (database retrieval)
   factory Expense.fromMap(Map<String, dynamic> map) {
     return Expense(
       id: map['id'],
@@ -49,13 +50,14 @@ class Expense {
       description: map['description'],
       imageUrl: map['imageUrl'],
       recurrenceType: RecurrenceType.values[map['recurrenceType'] ?? 0],
-      nextDueDate: map['nextDueDate'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['nextDueDate'])
-          : null,
+      nextDueDate:
+          map['nextDueDate'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['nextDueDate'])
+              : null,
+      currency: map['currency'] ?? 'ETB', // Default to ETB if missing
     );
   }
 
-  // Create a copy of expense with updated fields
   Expense copyWith({
     String? id,
     String? title,
@@ -66,6 +68,7 @@ class Expense {
     String? imageUrl,
     RecurrenceType? recurrenceType,
     DateTime? nextDueDate,
+    String? currency,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -77,12 +80,13 @@ class Expense {
       imageUrl: imageUrl ?? this.imageUrl,
       recurrenceType: recurrenceType ?? this.recurrenceType,
       nextDueDate: nextDueDate ?? this.nextDueDate,
+      currency: currency ?? this.currency,
     );
   }
 
   @override
   String toString() {
-    return 'Expense{id: $id, title: $title, amount: $amount, date: $date, categoryId: $categoryId, recurrenceType: $recurrenceType, nextDueDate: $nextDueDate}';
+    return 'Expense{id: $id, title: $title, amount: $amount, date: $date, categoryId: $categoryId, recurrenceType: $recurrenceType, nextDueDate: $nextDueDate, currency: $currency}';
   }
 
   @override
