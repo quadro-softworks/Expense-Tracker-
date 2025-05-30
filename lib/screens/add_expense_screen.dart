@@ -4,6 +4,13 @@ import 'package:uuid/uuid.dart';
 import '../models/expense.dart';
 import '../models/category.dart';
 
+extension StringCasingExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return this[0].toUpperCase() + substring(1);
+  }
+}
+
 class AddExpenseScreen extends StatefulWidget {
   final Function(Expense) onExpenseAdded;
   final Expense? initialExpense;
@@ -28,6 +35,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Category? _selectedCategory;
   final List<Category> _categories = Category.getDefaultCategories();
 
+  RecurrenceType _selectedRecurrence = RecurrenceType.none;
+
+  DateTime? _nextDueDate;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +51,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         (cat) => cat.id == widget.initialExpense!.categoryId,
         orElse: () => _categories.first,
       );
+      _selectedRecurrence = widget.initialExpense!.recurrenceType;
+      _nextDueDate = widget.initialExpense!.nextDueDate;
     }
   }
 
@@ -76,6 +89,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        recurrenceType: _selectedRecurrence,
+        nextDueDate:
+            _selectedRecurrence == RecurrenceType.none ? null : _nextDueDate,
       );
       widget.onExpenseAdded(expense);
       Navigator.of(context).pop();
@@ -224,8 +240,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         ],
                       ),
-                    ),
-                  );
+                    );
                 }).toList(),
               ),
               const SizedBox(height: 16),
@@ -239,6 +254,38 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   prefixIcon: Icon(Icons.description),
                 ),
                 maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+
+              // Recurrence Selection
+              const Text(
+                'Recurrence',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<RecurrenceType>(
+                value: _selectedRecurrence,
+                items: RecurrenceType.values.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type.toString().split('.').last.capitalize()),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedRecurrence = value!;
+                    if (_selectedRecurrence == RecurrenceType.none) {
+                      _nextDueDate = null;
+                    } else {
+                      _nextDueDate = _selectedDate;
+                    }
+                  });
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Repeat',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.repeat),
+                ),
               ),
             ],
           ),
