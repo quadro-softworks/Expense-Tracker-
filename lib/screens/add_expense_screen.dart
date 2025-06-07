@@ -39,6 +39,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   DateTime? _nextDueDate;
 
+  String? _selectedCurrency = 'ETB'; // Default to ETB
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +55,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
       _selectedRecurrence = widget.initialExpense!.recurrenceType;
       _nextDueDate = widget.initialExpense!.nextDueDate;
+      _selectedCurrency =
+          widget.initialExpense!.currency ?? 'ETB'; // Default to ETB
+    } else {
+      _selectedCurrency = 'ETB'; // Default to ETB
     }
   }
 
@@ -86,12 +92,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         amount: double.parse(_amountController.text),
         date: _selectedDate,
         categoryId: _selectedCategory!.id,
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
+        description:
+            _descriptionController.text.trim().isEmpty
+                ? null
+                : _descriptionController.text.trim(),
         recurrenceType: _selectedRecurrence,
         nextDueDate:
             _selectedRecurrence == RecurrenceType.none ? null : _nextDueDate,
+        currency: _selectedCurrency ?? 'ETB', // Always save ETB if not set
       );
       widget.onExpenseAdded(expense);
       Navigator.of(context).pop();
@@ -121,7 +129,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title Field
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
@@ -138,7 +145,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Amount Field
               TextFormField(
                 controller: _amountController,
                 decoration: const InputDecoration(
@@ -162,7 +168,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Date Field
               InkWell(
                 onTap: _selectDate,
                 child: Container(
@@ -185,7 +190,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Category Selection
               const Text(
                 'Category',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -194,58 +198,63 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _categories.map((category) {
-                  final isSelected = _selectedCategory?.id == category.id;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Color(category.color).withValues(alpha: 0.2)
-                            : Colors.grey.withValues(alpha: 0.1),
-                        border: Border.all(
-                          color: isSelected
-                              ? Color(category.color)
-                              : Colors.grey,
-                          width: isSelected ? 2 : 1,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            category.icon,
-                            style: const TextStyle(fontSize: 16),
+                children:
+                    _categories.map((category) {
+                      final isSelected = _selectedCategory?.id == category.id;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = category;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            category.name,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Color(category.color)
-                                  : Colors.black87,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected
+                                    ? Color(category.color).withAlpha(50)
+                                    : Colors.grey.withAlpha(25),
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? Color(category.color)
+                                      : Colors.grey,
+                              width: isSelected ? 2 : 1,
                             ),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        ],
-                      ),
-                    );
-                }).toList(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                category.icon,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                category.name,
+                                style: TextStyle(
+                                  color:
+                                      isSelected
+                                          ? Color(category.color)
+                                          : Colors.black87,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 16),
 
-              // Description Field
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
@@ -257,7 +266,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Recurrence Selection
               const Text(
                 'Recurrence',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -265,12 +273,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               const SizedBox(height: 8),
               DropdownButtonFormField<RecurrenceType>(
                 value: _selectedRecurrence,
-                items: RecurrenceType.values.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type.toString().split('.').last.capitalize()),
-                  );
-                }).toList(),
+                items:
+                    RecurrenceType.values.map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(
+                          type.toString().split('.').last.capitalize(),
+                        ),
+                      );
+                    }).toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedRecurrence = value!;
