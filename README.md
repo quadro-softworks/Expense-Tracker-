@@ -10,7 +10,7 @@ A comprehensive expense tracking application built with Flutter.
 - Search and filter expenses by category and date range
 - Dark/Light theme support with system theme detection
 - Local SQLite database storage
-- Multi-currency support (USD, EUR, GBP, JPY, INR)
+- Multi-currency support (ETB, USD, EUR, GBP, JPY, INR)
 - Edit expenses with pre-populated data
 - Swipe to delete with confirmation
 - Real-time expense analytics and summaries
@@ -21,9 +21,9 @@ A comprehensive expense tracking application built with Flutter.
 ```
 lib/
 ├── main.dart              # App entry point
-├── models/               # Data models
-├── screens/              # UI screens
-├── widgets/              # Reusable widgets
+├── models/               # data models
+├── screens/              # ui screens
+├── widgets/              # reusable widgets
 ├── services/             # Business logic & data services
 ├── providers/            # State management
 └── utils/                # Helper functions & constants
@@ -60,25 +60,7 @@ lib/
    flutter run
    ```
 
-3. **Windows Developer Mode (Required for Desktop)**
-   If you're running on Windows and want to test the desktop version, you need to enable Developer Mode:
-
-   **Option 1: Use the provided script**
-
-   ```bash
-   # Run the batch file to open settings
-   ./enable_developer_mode.bat
-   ```
-
-   **Option 2: Manual setup**
-
-   - Open Windows Settings (Win + I)
-   - Go to Privacy & security → For developers
-   - Turn ON "Developer Mode"
-   - Click "Yes" when prompted
-   - Restart your terminal and run `flutter run -d windows`
-
-4. **Build for production**
+3. **Build for production**
 
    ```bash
    # Android
@@ -90,7 +72,7 @@ lib/
    # Web
    flutter build web --release
 
-   # Windows (requires Developer Mode)
+   # Windows
    flutter build windows --release
    ```
 
