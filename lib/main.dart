@@ -1,11 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Added provider
+import 'package:shared_preferences/shared_preferences.dart'; // Added shared_preferences
 import 'models/expense.dart';
 import 'models/category.dart';
 import 'screens/add_expense_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+// ThemeNotifier to manage theme state
+class ThemeNotifier with ChangeNotifier {
+  final String key = "theme";
+  SharedPreferences? _prefs;
+  bool _darkTheme = false;
+
+  bool get darkTheme => _darkTheme;
+
+  ThemeNotifier() {
+    _loadFromPrefs();
+  }
+
+  _initPrefs() async {
+    _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  _loadFromPrefs() async {
+    await _initPrefs();
+    _darkTheme = _prefs?.getBool(key) ?? false;
+    notifyListeners();
+  }
+
+  _saveToPrefs() async {
+    await _initPrefs();
+    _prefs?.setBool(key, _darkTheme);
+  }
+
+  void toggleTheme() {
+    _darkTheme = !_darkTheme;
+    _saveToPrefs();
+    notifyListeners();
+  }
+}
 
 void main() {
-  runApp(const ExpenseTrackerApp());
+  runApp(
+    ChangeNotifierProvider<ThemeNotifier>(
+      create: (_) => ThemeNotifier(),
+      child: const ExpenseTrackerApp(),
+    ),
+  );
 }
 
 class ExpenseTrackerApp extends StatelessWidget {
@@ -13,23 +55,28 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Expense Tracker',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
+    return Consumer<ThemeNotifier>( // Use Consumer to rebuild on theme change
+      builder: (context, themeNotifier, child) {
+        return MaterialApp(
+          title: 'Expense Tracker',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.green,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.green,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          themeMode: themeNotifier.darkTheme ? ThemeMode.dark : ThemeMode.light, // Control ThemeMode
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
@@ -85,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     ),
-    const StatisticsScreen(),
+    StatisticsScreen(expenses: _expenses, categories: _categories), // Pass expenses and categories
     const SettingsScreen(),
   ];
 
@@ -257,28 +304,162 @@ class ExpenseListScreen extends StatelessWidget {
 }
 
 class StatisticsScreen extends StatelessWidget {
-  const StatisticsScreen({super.key});
+  final List<Expense> expenses;
+  final List<Category> categories;
+
+  const StatisticsScreen({
+    super.key,
+    required this.expenses,
+    required this.categories,
+  });
+
+  Map<String, double> _calculateCategoryTotals() {
+    final categoryTotals = <String, double>{};
+    for (final expense in expenses) {
+      categoryTotals.update(
+        expense.categoryId,
+        (value) => value + expense.amount,
+        ifAbsent: () => expense.amount,
+      );
+    }
+    return categoryTotals;
+  }
+
+  Category? _getCategoryById(String categoryId) {
+    try {
+      return categories.firstWhere((cat) => cat.id == categoryId);
+    } catch (e) {
+      return null; 
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final categoryTotals = _calculateCategoryTotals();
+    final totalExpenses = expenses.fold<double>(0, (sum, item) => sum + item.amount);
+
+    List<PieChartSectionData> showingSections() {
+      return categoryTotals.entries.map((entry) {
+        final category = _getCategoryById(entry.key);
+        final percentage = (entry.value / totalExpenses) * 100;
+        return PieChartSectionData(
+          color: category != null ? Color(category.color) : Colors.grey,
+          value: entry.value,
+          title: '${percentage.toStringAsFixed(1)}%\n${category?.icon ?? ""}',
+          radius: 100,
+          titleStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+            shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
+          ),
+          badgeWidget: Text(
+            category?.name ?? 'Unknown',
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+            ),
+          ),
+          badgePositionPercentageOffset: .98,
+        );
+      }).toList();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistics'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Statistics will appear here',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: expenses.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No expenses to show statistics for',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Add some expenses to see your spending summary',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : SingleChildScrollView( // Added SingleChildScrollView
+              padding: const EdgeInsets.all(16.0),
+              child: Column( // Wrapped content in a Column
+                children: [
+                  SizedBox(
+                    height: 250, // Define height for PieChart
+                    child: PieChart(
+                      PieChartData(
+                        sections: showingSections(),
+                        centerSpaceRadius: 40,
+                        sectionsSpace: 2,
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            // Handle touch events if needed
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Total Spent: \$${totalExpenses.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Spending by Category:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ListView.builder(
+                    shrinkWrap: true, // Important for ListView inside Column
+                    physics: const NeverScrollableScrollPhysics(), // Disable scrolling for this ListView
+                    itemCount: categoryTotals.length,
+                    itemBuilder: (context, index) {
+                      final categoryId = categoryTotals.keys.elementAt(index);
+                      final totalAmount = categoryTotals[categoryId]!;
+                      final category = _getCategoryById(categoryId);
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: ListTile(
+                          leading: Text(
+                            category?.icon ?? '❓',
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                          title: Text(
+                            category?.name ?? 'Unknown Category',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          trailing: Text(
+                            '\\$${totalAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -293,18 +474,23 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.settings, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Settings will appear here',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
+      body: ListView( // Changed to ListView for more settings options later
+        children: [
+          Consumer<ThemeNotifier>(
+            builder: (context, themeNotifier, child) {
+              return ListTile(
+                title: const Text('Dark Mode'),
+                trailing: Switch(
+                  value: themeNotifier.darkTheme,
+                  onChanged: (value) {
+                    themeNotifier.toggleTheme();
+                  },
+                ),
+              );
+            },
+          ),
+          // Add more settings here in the future
+        ],
       ),
     );
   }
