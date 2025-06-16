@@ -7,6 +7,9 @@ class Expense {
   final String? description;
   final String? imageUrl;
 
+  final String paymentMethod;
+  final String? location;
+  final String? currency;
   Expense({
     required this.id,
     required this.title,
@@ -15,6 +18,9 @@ class Expense {
     required this.categoryId,
     this.description,
     this.imageUrl,
+    required this.paymentMethod,
+    this.location,
+    this.currency,
   });
 
   // Convert Expense to Map for database storage
@@ -27,6 +33,9 @@ class Expense {
       'categoryId': categoryId,
       'description': description,
       'imageUrl': imageUrl,
+      'paymentMethod': paymentMethod,
+      'location': location,
+      'currency': currency,
     };
   }
 
@@ -40,6 +49,9 @@ class Expense {
       categoryId: map['categoryId'],
       description: map['description'],
       imageUrl: map['imageUrl'],
+      paymentMethod: map['paymentMethod'],
+      location: map['location'],
+      currency: map['currency'],
     );
   }
 
@@ -52,6 +64,9 @@ class Expense {
     String? categoryId,
     String? description,
     String? imageUrl,
+    String? paymentMethod,
+    String? location,
+    String? currency,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -61,12 +76,15 @@ class Expense {
       categoryId: categoryId ?? this.categoryId,
       description: description ?? this.description,
       imageUrl: imageUrl ?? this.imageUrl,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      location: location ?? this.location,
+      currency: currency ?? this.currency,
     );
   }
 
   @override
   String toString() {
-    return 'Expense{id: $id, title: $title, amount: $amount, date: $date, categoryId: $categoryId}';
+    return 'Expense{id: $id, title: $title, amount: $amount, date: $date, categoryId: $categoryId, paymentMethod: $paymentMethod, location: $location, currency: $currency}';
   }
 
   @override
