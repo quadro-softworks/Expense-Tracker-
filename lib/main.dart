@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Added provider
-import 'package:shared_preferences/shared_preferences.dart'; // Added shared_preferences
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/expense.dart';
+import 'dart:convert';
 import 'models/category.dart';
 import 'screens/add_expense_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-
-// ThemeNotifier to manage theme state
 class ThemeNotifier with ChangeNotifier {
   final String key = "theme";
   SharedPreferences? _prefs;
@@ -35,7 +34,6 @@ class ThemeNotifier with ChangeNotifier {
   }
 
   void toggleTheme() {
-    _darkTheme = !_darkTheme;
     _saveToPrefs();
     notifyListeners();
   }
@@ -55,7 +53,7 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeNotifier>( // Use Consumer to rebuild on theme change
+    return Consumer<ThemeNotifier>(
       builder: (context, themeNotifier, child) {
         return MaterialApp(
           title: 'Expense Tracker',
@@ -73,7 +71,7 @@ class ExpenseTrackerApp extends StatelessWidget {
             ),
             useMaterial3: true,
           ),
-          themeMode: themeNotifier.darkTheme ? ThemeMode.dark : ThemeMode.light, // Control ThemeMode
+          themeMode: themeNotifier.darkTheme ? ThemeMode.dark : ThemeMode.light,
           home: const HomeScreen(),
         );
       },
@@ -91,27 +89,52 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   List<Expense> _expenses = [];
-  final List<Category> _categories = Category.getDefaultCategories();
+  final List<Category> _categories = Category.getDefaultCategories(); // TODO: Load categories from persistent storage
+
+  @override
+  void initState() {
+    _loadExpenses();
+  }
+
+  // Load expenses from SharedPreferences
+  void _loadExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expensesString = prefs.getString('expenses');
+    if (expensesString != null) {
+      final List<dynamic> jsonList = jsonDecode(expensesString);
+      setState(() {
+        _expenses = jsonList.map((json) => Expense.fromMap(json)).toList();
+      });
+    }
+  }
+
+  // Save expenses to SharedPreferences
+  void _saveExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expensesJson = _expenses.map((expense) => expense.toMap()).toList();
+    prefs.setString('expenses', jsonEncode(expensesJson));
+  }
 
   void _addExpense(Expense expense) {
     setState(() {
       _expenses.add(expense);
     });
+    _saveExpenses();
   }
 
   void _editExpense(Expense updatedExpense) {
     setState(() {
       final index = _expenses.indexWhere((e) => e.id == updatedExpense.id);
-      if (index != -1) {
-        _expenses[index] = updatedExpense;
-      }
+      if (index != -1) _expenses[index] = updatedExpense;
     });
   }
 
   void _deleteExpense(String id) {
-    setState(() {
+    setState(() { // TODO: Add confirmation dialog for deletion
       _expenses.removeWhere((expense) => expense.id == id);
     });
+
+    _saveExpenses();
   }
 
   List<Widget> get _screens => [
@@ -132,8 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     ),
-    StatisticsScreen(expenses: _expenses, categories: _categories), // Pass expenses and categories
-    const SettingsScreen(),
+    StatisticsScreen(expenses: _expenses, categories: _categories),
+    const SettingsScreen(), // TODO: Implement more settings options
+    const ProfileScreen(), // Add ProfileScreen here
   ];
 
   @override
@@ -150,8 +174,12 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Statistics',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
+            icon: Icon(Icons.settings), // TODO: Use a more appropriate icon if needed
             label: 'Settings',
+          ),
+          BottomNavigationBarItem( // Add new BottomNavigationBarItem
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),
@@ -274,6 +302,24 @@ class ExpenseListScreen extends StatelessWidget {
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
+                          if (expense.paymentMethod != null ||
+                              expense.location != null ||
+                              expense.currency != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                '${expense.paymentMethod != null ? 'Paid with: ${expense.paymentMethod}' : ''}'
+                                '${expense.paymentMethod != null && expense.location != null ? ' | ' : ''}'
+                                '${expense.location != null ? 'At: ${expense.location}' : ''}'
+                                '${(expense.paymentMethod != null ||
+                                            expense.location != null) &&
+                                        expense.currency != null
+                                    ? ' | '
+                                    : ''}'
+                                '${expense.currency != null ? 'Currency: ${expense.currency}' : ''}',
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ),
                         ],
                       ),
                       trailing: Row(
@@ -282,7 +328,7 @@ class ExpenseListScreen extends StatelessWidget {
                           Text(
                             '\$${expense.amount.toStringAsFixed(2)}',
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 16, // TODO: Use consistent text styles
                               fontWeight: FontWeight.bold,
                               color: Colors.red,
                             ),
@@ -307,13 +353,36 @@ class StatisticsScreen extends StatelessWidget {
   final List<Expense> expenses;
   final List<Category> categories;
 
-  const StatisticsScreen({
+  const StatisticsScreen({ // TODO: Add more options for filtering and sorting
     super.key,
     required this.expenses,
     required this.categories,
   });
 
-  Map<String, double> _calculateCategoryTotals() {
+  @override
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  // Define possible time periods for statistics
+  final Map<String, Duration> _timePeriods = {
+    'This Month': const Duration(days: 30), // Approximation
+    'Last 3 Months': const Duration(days: 90), // Approximation
+    'This Year': const Duration(days: 365), // Approximation
+    'All Time': const Duration(days: 365 * 100), // Essentially all time
+  };
+
+  String _selectedTimePeriod = 'This Month'; // Default selected period
+
+  // Filter expenses based on the selected time period
+  List<Expense> _getFilteredExpenses() {
+    final now = DateTime.now();
+    final startDate = now.subtract(_timePeriods[_selectedTimePeriod]!);
+
+    return widget.expenses.where((expense) => expense.date.isAfter(startDate)).toList();
+  }
+
+  Map<String, double> _calculateCategoryTotals(List<Expense> expenses) {
     final categoryTotals = <String, double>{};
     for (final expense in expenses) {
       categoryTotals.update(
@@ -327,16 +396,17 @@ class StatisticsScreen extends StatelessWidget {
 
   Category? _getCategoryById(String categoryId) {
     try {
-      return categories.firstWhere((cat) => cat.id == categoryId);
-    } catch (e) {
+      return widget.categories.firstWhere((cat) => cat.id == categoryId);
+    } catch (e) { // TODO: Handle case where category is not found
       return null; 
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final categoryTotals = _calculateCategoryTotals();
-    final totalExpenses = expenses.fold<double>(0, (sum, item) => sum + item.amount);
+    final filteredExpenses = _getFilteredExpenses();
+    final categoryTotals = _calculateCategoryTotals(filteredExpenses);
+    final totalExpenses = filteredExpenses.fold<double>(0, (sum, item) => sum + item.amount);
 
     List<PieChartSectionData> showingSections() {
       return categoryTotals.entries.map((entry) {
@@ -365,14 +435,42 @@ class StatisticsScreen extends StatelessWidget {
       }).toList();
     }
 
+    Map<String, double> _calculateMonthlyTotals(List<Expense> expenses) {
+      final monthlyTotals = <String, double>{};
+      final dateFormat = DateFormat('MMM yyyy');
+
+      for (final expense in expenses) {
+        final monthYear = dateFormat.format(expense.date);
+        monthlyTotals.update(
+          monthYear,
+          (value) => value + expense.amount,
+          ifAbsent: () => expense.amount,
+        );
+      }
+      return monthlyTotals;
+    }
+
+
+    // Generate data for the monthly spending bar chart
+    List<BarChartGroupData> showingBarGroups() {
+      final sortedMonths = monthlyTotals.keys.toList()
+        ..sort((a, b) => DateFormat('MMM yyyy').parse(a).compareTo(DateFormat('MMM yyyy').parse(b)));
+
+      return sortedMonths.asMap().entries.map((entry) {
+        final index = entry.key;
+        final monthYear = entry.value;
+        final total = monthlyTotals[monthYear]!;
+        return BarChartGroupData(x: index, barRods: [BarChartRodData(toY: total, color: Theme.of(context).colorScheme.primary)]);
+      }).toList();
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Statistics'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Spending Statistics'),
       ),
       body: expenses.isEmpty
           ? const Center(
-              child: Column(
+              child: Column( // TODO: Improve empty state message and design
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.receipt_long, size: 64, color: Colors.grey),
@@ -389,13 +487,47 @@ class StatisticsScreen extends StatelessWidget {
                 ],
               ),
             )
-          : SingleChildScrollView( // Added SingleChildScrollView
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch children horizontally
+                children: [
+                  // Time Period Selection
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Select Time Period',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: _selectedTimePeriod,
+                    items: _timePeriods.keys.map((String period) {
+                      return DropdownMenuItem<String>(
+                        value: period,
+                        child: Text(period),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedTimePeriod = newValue;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Total Spent (${_selectedTimePeriod}): \$${totalExpenses.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
               padding: const EdgeInsets.all(16.0),
               child: Column( // Wrapped content in a Column
                 children: [
                   SizedBox(
                     height: 250, // Define height for PieChart
-                    child: PieChart(
+                    child: PieChart( // TODO: Add tooltips or interactions to PieChart sections
                       PieChartData(
                         sections: showingSections(),
                         centerSpaceRadius: 40,
@@ -409,14 +541,44 @@ class StatisticsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    'Total Spent: \$${totalExpenses.toStringAsFixed(2)}',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary),
+                  const Text(
+                    'Spending by Month:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
+                  SizedBox(
+                    height: 200, // Height for the bar chart
+                    child: BarChart( // TODO: Customize bar chart appearance (e.g., colors, labels)
+                      BarChartData(
+                        barGroups: showingBarGroups(),
+                        borderData: FlBorderData(show: false),
+                        gridData: const FlGridData(show: false),
+                        titlesData: FlTitlesData(
+                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (double value, TitleMeta meta) {
+                                final index = value.toInt();
+                                if (index >= 0 && index < monthlyTotals.keys.length) {
+                                  final sortedMonths = monthlyTotals.keys.toList()
+                                    ..sort((a, b) => DateFormat('MMM yyyy').parse(a).compareTo(DateFormat('MMM yyyy').parse(b)));
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(sortedMonths[index], style: const TextStyle(fontSize: 10)),
+                                  );
+                                }
+                                return const Text('');
+                              },
+                              reservedSize: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   const Divider(),
                   const SizedBox(height: 16),
                   const Text(
@@ -447,7 +609,7 @@ class StatisticsScreen extends StatelessWidget {
                             ),
                           ),
                           trailing: Text(
-                            '\\$${totalAmount.toStringAsFixed(2)}',
+                            '\$${totalAmount.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.green[700],
@@ -473,7 +635,7 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
+      ), // TODO: Customize app bar colors and style
       body: ListView( // Changed to ListView for more settings options later
         children: [
           Consumer<ThemeNotifier>(
@@ -488,8 +650,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
               );
             },
-          ),
-          // Add more settings here in the future
+          ), // TODO: Add more settings options (e.g., currency, date format, notifications)
         ],
       ),
     );
