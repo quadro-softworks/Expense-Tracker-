@@ -55,9 +55,7 @@ dependencies:
   # File Picker for importing/exporting
   file_picker: ^8.1.2
 
-  # Shared Preferences for settings
-  shared_preferences: ^2.3.2
-
+  shared_preferences: ^2.2.3 # Added for persistent storage
   # UUID for unique IDs
   uuid: ^4.5.1
 
