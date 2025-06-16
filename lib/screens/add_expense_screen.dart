@@ -23,6 +23,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _locationController = TextEditingController();
+  String? _selectedPaymentMethod;
+  String? _selectedCurrency;
 
   DateTime _selectedDate = DateTime.now();
   Category? _selectedCategory;
@@ -38,6 +41,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _selectedDate = widget.initialExpense!.date;
       _selectedCategory = _categories.firstWhere(
         (cat) => cat.id == widget.initialExpense!.categoryId,
+      );
+      _locationController.text = widget.initialExpense!.location ?? '';
+      _selectedPaymentMethod = widget.initialExpense!.paymentMethod;
         orElse: () => _categories.first,
       );
     }
@@ -48,6 +54,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _titleController.dispose();
     _amountController.dispose();
     _descriptionController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -76,6 +83,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        paymentMethod: _selectedPaymentMethod,
+        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        currency: _selectedCurrency,
       );
       widget.onExpenseAdded(expense);
       Navigator.of(context).pop();
